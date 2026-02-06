@@ -15,21 +15,40 @@ function App() {
   // Stats
   const rdCount = items.filter((i) => i.winner === "RD").length;
   const brCount = items.filter((i) => i.winner === "BR").length;
+  const debCount = items.filter((i) => i.winner === "DEB").length;
 
   const handleLoadMore = () => {
     setVisibleCount((prev) => prev + 50);
   };
 
   const formatPriceDiff = (item) => {
-    if (!item.rd.price || !item.br.price) return null;
-    const diff = Math.abs(item.rd.price - item.br.price);
+    // Collect available prices
+    const prices = [];
+    if (item.rd?.price) prices.push(item.rd.price);
+    if (item.br?.price) prices.push(item.br.price);
+    if (item.deb?.price) prices.push(item.deb.price);
+
+    if (prices.length < 2) return null;
+
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+    const diff = maxPrice - minPrice;
+
     return `£${diff.toFixed(2)}`;
   };
 
   const calculatePercentage = (item) => {
-    if (!item.rd.price || !item.br.price) return 0;
-    const diff = Math.abs(item.rd.price - item.br.price);
-    const maxPrice = Math.max(item.rd.price, item.br.price);
+    const prices = [];
+    if (item.rd?.price) prices.push(item.rd.price);
+    if (item.br?.price) prices.push(item.br.price);
+    if (item.deb?.price) prices.push(item.deb.price);
+
+    if (prices.length < 2) return 0;
+
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+    const diff = maxPrice - minPrice;
+
     return (diff / maxPrice) * 100;
   };
 
@@ -80,6 +99,10 @@ function App() {
               <span className="label">Boutique Rugs</span>
               <span className="value br-color">{brCount}</span>
             </div>
+            <div className="stat-item">
+              <span className="label">Debenhams</span>
+              <span className="value deb-color">{debCount}</span>
+            </div>
           </div>
         </div>
       </header>
@@ -108,6 +131,13 @@ function App() {
               data-type="BR"
             >
               Boutique Rugs
+            </button>
+            <button
+              className={`filter-btn ${filterWinner === "DEB" ? "active" : ""}`}
+              onClick={() => setFilterWinner("DEB")}
+              data-type="DEB"
+            >
+              Debenhams
             </button>
           </div>
         </div>
@@ -147,6 +177,10 @@ function App() {
           const savings = formatPriceDiff(item);
           const percent = calculatePercentage(item).toFixed(0);
 
+          let badgeClass = "rd-bg";
+          if (item.winner === "BR") badgeClass = "br-bg";
+          if (item.winner === "DEB") badgeClass = "deb-bg";
+
           return (
             <div key={item.id} className="product-card">
               <div className="card-header">
@@ -158,9 +192,7 @@ function App() {
                 </div>
                 {savings && (
                   <div className="header-right">
-                    <span
-                      className={`tag savings ${item.winner === "RD" ? "rd-bg" : "br-bg"}`}
-                    >
+                    <span className={`tag savings ${badgeClass}`}>
                       Save {savings} ({percent}%)
                     </span>
                   </div>
@@ -179,32 +211,29 @@ function App() {
                     )}
                   </div>
                   <div className="image-wrapper">
-                    <img
-                      src={item.rd.image}
-                      alt="Rugs Direct Variant"
-                      loading="lazy"
-                      onError={(e) => {
-                        e.target.style.display = "none";
-                        e.target.parentElement.classList.add("no-image");
-                      }}
-                    />
+                    {item.rd?.image ? (
+                      <img src={item.rd.image} alt="RD" loading="lazy" />
+                    ) : (
+                      <span className="no-data">N/A</span>
+                    )}
                   </div>
                   <div className="price-section">
                     <div className="current-price">
-                      {item.rd.formattedPrice}
+                      {item.rd?.formattedPrice || "-"}
                     </div>
-                    <a
-                      href={item.rd.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="shop-btn rd-btn"
-                    >
-                      View Deal
-                    </a>
+                    {item.rd?.url && (
+                      <a
+                        href={item.rd.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="shop-btn rd-btn"
+                      >
+                        View Deal
+                      </a>
+                    )}
                   </div>
                 </div>
 
-                {/* Divider for Mobile/Desktop */}
                 <div className="col-divider">
                   <span>VS</span>
                 </div>
@@ -220,28 +249,69 @@ function App() {
                     )}
                   </div>
                   <div className="image-wrapper">
-                    <img
-                      src={item.br.image}
-                      alt="Boutique Rugs Variant"
-                      loading="lazy"
-                      onError={(e) => {
-                        e.target.style.display = "none";
-                        e.target.parentElement.classList.add("no-image");
-                      }}
-                    />
+                    {item.br?.image ? (
+                      <img src={item.br.image} alt="BR" loading="lazy" />
+                    ) : (
+                      <span className="no-data">N/A</span>
+                    )}
                   </div>
                   <div className="price-section">
                     <div className="current-price">
-                      {item.br.formattedPrice}
+                      {item.br?.formattedPrice || "-"}
                     </div>
-                    <a
-                      href={item.br.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="shop-btn br-btn"
-                    >
-                      View Deal
-                    </a>
+                    {item.br?.url && (
+                      <a
+                        href={item.br.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="shop-btn br-btn"
+                      >
+                        View Deal
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                <div className="col-divider">
+                  <span>VS</span>
+                </div>
+
+                {/* Debenhams */}
+                <div
+                  className={`vendor-col ${item.winner === "DEB" ? "winner" : ""}`}
+                >
+                  <div className="vendor-header">
+                    <span className="vendor-name deb-text">Debenhams</span>
+                    {item.winner === "DEB" && (
+                      <span className="winner-icon">🏆</span>
+                    )}
+                  </div>
+                  <div className="image-wrapper">
+                    {item.deb?.image ? (
+                      <img src={item.deb.image} alt="DEB" loading="lazy" />
+                    ) : (
+                      <span
+                        className="no-data"
+                        style={{ color: "#cbd5e1", fontWeight: "bold" }}
+                      >
+                        N/A
+                      </span>
+                    )}
+                  </div>
+                  <div className="price-section">
+                    <div className="current-price">
+                      {item.deb?.formattedPrice || "-"}
+                    </div>
+                    {item.deb?.url && (
+                      <a
+                        href={item.deb.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="shop-btn deb-btn"
+                      >
+                        View Deal
+                      </a>
+                    )}
                   </div>
                 </div>
               </div>
